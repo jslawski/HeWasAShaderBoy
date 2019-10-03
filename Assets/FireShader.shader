@@ -4,12 +4,16 @@
     {
         _MainTex ("Texture", 2D) = "white" {}
 		_NoiseTex ("Noise Texture", 2D) = "white" {}
-		_FireSize ("Fire Size", Range(0, 0.5)) = 0.1
+		_FireHeight ("Fire Height", Range(0, 0.5)) = 0.1
+		_FireWidth("Fire Width", Range(0, 1.0)) = 0.1
 		_FireIntensity("Fire Intensity", Range(0, 1.0)) = 0.7
     }
     SubShader
     {
-		Tags{ "RenderType" = "Transparent" }
+		Tags{ "Queue" = "Transparent" "RenderType" = "Transparent" }
+
+		ZWrite Off
+		Blend SrcAlpha OneMinusSrcAlpha
 
 		Pass
         {
@@ -37,7 +41,8 @@
             float4 _MainTex_ST;
 			sampler2D _NoiseTex;
 			float4 _NoiseTex_ST;
-			float _FireSize;
+			float _FireHeight;
+			float _FireWidth;
 			float _FireIntensity;
 
             v2f vert (appdata v)
@@ -59,10 +64,17 @@
 				// sample the texture
                 fixed4 col = tex2D(_MainTex, i.uv);
 
-				float redValue = lerp(col.r, (i.uv.y + noiseSample), step(i.uv.y + noiseSample, 0.5 + _FireSize));
+				float finalValue = step(i.uv.y + noiseSample, 0.5 + _FireHeight);// *step(i.uv.x + noiseSample, 0.5 + _FireWidth);
 
-				col = fixed4(redValue, col.g, col.b, col.a);
+				float redValue = lerp(col.r, (i.uv.y + noiseSample), finalValue);
+				float greenValue = lerp(col.g, 0, finalValue);
+				float blueValue = lerp(col.b, 0, finalValue);
+				float alphaValue = lerp(col.a, (i.uv.y + noiseSample), finalValue);
+
+				col = fixed4(redValue, greenValue, blueValue, col.a);
 				
+				clip(0 - col.g);
+
 				return col;
             }
             ENDCG
